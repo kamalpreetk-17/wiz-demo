@@ -1,7 +1,6 @@
 name: Deploy Infrastructure (Terraform)
 
 on:
-
   push:
     branches:
       - main
@@ -32,7 +31,7 @@ on:
 
 jobs:
   # ---------------------------------------------------------
-  # JOB 1: Security Scanning (No AWS credentials needed)
+  # JOB 1: Security Scanning
   # ---------------------------------------------------------
   security-scan:
     name: Checkov IaC Scan
@@ -43,16 +42,16 @@ jobs:
 
       - name: Run Checkov Security Scan
         uses: bridgecrewio/checkov-action@master
-        
+        # This allows the pipeline to continue even with vulnerabilities
         continue-on-error: true 
-
         with:
-          directory: infrastructure/root/
+          # FIXED: Scanning the entire repo prevents the module path crash
+          directory: . 
           soft_fail: true 
           output_format: cli
 
   # ---------------------------------------------------------
-  # JOB 2: Terraform Plan (Needs AWS credentials)
+  # JOB 2: Terraform Plan
   # ---------------------------------------------------------
   terraform-plan:
     name: Terraform Plan
@@ -94,7 +93,7 @@ jobs:
           path: infrastructure/root/tfplan
 
   # ---------------------------------------------------------
-  # JOB 3: Terraform Apply (Needs AWS credentials & Checkbox)
+  # JOB 3: Terraform Apply
   # ---------------------------------------------------------
   terraform-apply:
     name: Terraform Apply
@@ -103,12 +102,13 @@ jobs:
     
     environment: sandbox
     
-    # Enforce manual approval via the checkbox
+    # This ensures apply ONLY runs if triggered manually with the checkbox
     if: ${{ github.event.inputs.action == 'apply' && github.event.inputs.confirm_apply == 'true' }}
     
     defaults:
       run:
-        working-directory: ./infrastructure
+        # FIXED: Added /root so Terraform runs in the correct folder
+        working-directory: ./infrastructure/root 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
