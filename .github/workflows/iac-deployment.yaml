@@ -70,15 +70,14 @@ jobs:
         run: |
           set +e 
           terraform plan -lock=false -out=tfplan.binary
-          TF_EXIT_CODE=$?
-          set -e
           
-          if [ -f "tfplan.binary" ]; then
-            echo "Plan file successfully generated."
+          # Verify the file exists AND is a fully valid, uncorrupted plan
+          if [ -f "tfplan.binary" ] && terraform show tfplan.binary >/dev/null 2>&1; then
+            echo "Plan file successfully generated and validated!"
             exit 0
           else
-            echo "Plan failed to generate."
-            exit $TF_EXIT_CODE
+            echo "Error: Plan failed to generate or is corrupted."
+            exit 1
           fi
         
       - name: Compress Plan
@@ -97,6 +96,8 @@ jobs:
     name: Terraform Apply
     needs: terraform-plan
     runs-on: ubuntu-latest
+    
+    # This gate pauses the pipeline waiting for your manual review
     environment: sandbox 
     
     defaults:

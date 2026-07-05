@@ -45,11 +45,17 @@ resource "aws_security_group" "mongo_sg" {
 
 data "aws_ami" "ubuntu_outdated" {
   most_recent = true
-  owners = ["099720109477"]
+  owners      = ["099720109477"] # Canonical's official AWS account ID
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-2023*"]
+    # This string looks for the official, stable Ubuntu 22.04 LTS image
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
   }
 }
 
