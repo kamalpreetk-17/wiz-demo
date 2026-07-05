@@ -9,4 +9,6 @@ clusterName: ${module.eks.cluster_name}
 vpcId: ${module.vpc.vpc_id}
 EOF
   ]
+
+   depends_on = [module.eks] 
 }

@@ -23,13 +23,20 @@ provider "aws" {
 
 # Configure Helm provider using outputs from the EKS module to install the ALB Controller
 provider "helm" {
-  kubernetes {                 # <-- Fixed! No equals sign.
+  kubernetes {                 
     host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_ca_certificate)
+    # Ensure this matches your EKS module's actual output name
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    
     exec {
       api_version = "client.authentication.k8s.io/v1beta1"
       command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+      args = [
+        "eks", 
+        "get-token", 
+        "--cluster-name", module.eks.cluster_name,
+        "--region", "us-east-1" 
+      ]
     }
   }
 }
