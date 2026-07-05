@@ -82,7 +82,7 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -out=tfplan
+        run: terraform plan -out=tfplan -compact-warnings
 
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4 # UPDATED
