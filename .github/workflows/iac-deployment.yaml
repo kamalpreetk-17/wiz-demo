@@ -1,6 +1,19 @@
 name: Deploy Infrastructure (Terraform)
 
 on:
+
+  push:
+    branches:
+      - main
+      - 'feature/**'
+    paths:
+      - 'infrastructure/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/**'
+
   workflow_dispatch:
     inputs:
       action:
