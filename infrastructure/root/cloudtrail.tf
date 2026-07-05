@@ -2,6 +2,12 @@
 # AWS CloudTrail (Control Plane Audit Logging Requirement)
 # =====================================================================
 
+resource "random_string" "suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
 resource "aws_s3_bucket" "cloudtrail_bucket" {
   bucket        = "${var.environment}-cloudtrail-logs-${random_string.suffix.result}"
   force_destroy = true
