@@ -60,30 +60,21 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
-          terraform_wrapper: false # Disabled to fix Exit Code 1 bug
+          terraform_wrapper: false 
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Terraform Init (Upgrade Providers)
+        run: terraform init -upgrade
 
       - name: Terraform Plan
         id: plan
-        run: |
-          terraform plan -out=tfplan -compact-warnings || true
-
-          if [ -f "tfplan" ]; then
-            echo "tfplan generated successfully. Ignoring phantom exit code."
-            exit 0
-          else
-            echo "Error: tfplan was NOT generated. The plan truly failed."
-            exit 1
-          fi
+        run: terraform plan -lock=false -out=tfplan.binary
 
       - name: Upload Terraform Plan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: tfplan
-          # Uploads the exact binary plan file
-          path: infrastructure/root/tfplan 
+          name: tfplan-artifact
+          path: infrastructure/root/tfplan.binary
+          if-no-files-found: error
 
   # ---------------------------------------------------------
   # JOB 3: Terraform Apply (Pauses for Manual Approval)
@@ -92,9 +83,6 @@ jobs:
     name: Terraform Apply
     needs: terraform-plan
     runs-on: ubuntu-latest
-    
-    # THIS LINE TRIGGERS THE PAUSE! 
-    # (Requires 'Required reviewers' checked in Repo Settings -> Environments)
     environment: sandbox 
     
     defaults:
@@ -106,14 +94,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Terraform Plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
-          name: tfplan
-          # Downloads the file directly back into the root folder
-          path: infrastructure/root/
-
-      - name: Verify Plan File Exists
-        run: ls -la tfplan
+          name: tfplan-artifact
+          path: infrastructure/root
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -126,12 +110,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
-          terraform_wrapper: false # Disabled to fix Exit Code 1 bug
+          terraform_wrapper: false 
 
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Apply
-        run: |
-          set -e
-          terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan.binary
