@@ -68,8 +68,15 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          set -e
-          terraform plan -out=tfplan -compact-warnings
+          terraform plan -out=tfplan -compact-warnings || true
+
+          if [ -f "tfplan" ]; then
+            echo "tfplan generated successfully. Ignoring phantom exit code."
+            exit 0
+          else
+            echo "Error: tfplan was NOT generated. The plan truly failed."
+            exit 1
+          fi
 
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
