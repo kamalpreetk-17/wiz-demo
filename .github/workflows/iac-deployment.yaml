@@ -1,0 +1,122 @@
+name: Deploy Infrastructure (Terraform)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Choose action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+      confirm_apply:
+        description: 'Check this box to confirm you want to APPLY the changes'
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  # ---------------------------------------------------------
+  # JOB 1: Security Scanning (No AWS credentials needed)
+  # ---------------------------------------------------------
+  security-scan:
+    name: Checkov IaC Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Run Checkov Security Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure/root/
+          soft_fail: true 
+          output_format: cli
+
+  # ---------------------------------------------------------
+  # JOB 2: Terraform Plan (Needs AWS credentials)
+  # ---------------------------------------------------------
+  terraform-plan:
+    name: Terraform Plan
+    needs: security-scan
+    runs-on: ubuntu-latest
+    
+    environment: sandbox
+    
+    defaults:
+      run:
+        working-directory: ./infrastructure/root
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -out=tfplan
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: infrastructure/root/tfplan
+
+  # ---------------------------------------------------------
+  # JOB 3: Terraform Apply (Needs AWS credentials & Checkbox)
+  # ---------------------------------------------------------
+  terraform-apply:
+    name: Terraform Apply
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    
+    environment: sandbox
+    
+    # Enforce manual approval via the checkbox
+    if: ${{ github.event.inputs.action == 'apply' && github.event.inputs.confirm_apply == 'true' }}
+    
+    defaults:
+      run:
+        working-directory: ./infrastructure
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan
+          path: infrastructure/root/
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
