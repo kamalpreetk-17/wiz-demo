@@ -38,14 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # UPDATED
 
       - name: Run Checkov Security Scan
         uses: bridgecrewio/checkov-action@master
-        # This allows the pipeline to continue even with vulnerabilities
         continue-on-error: true 
         with:
-          # FIXED: Scanning the entire repo prevents the module path crash
           directory: . 
           soft_fail: true 
           output_format: cli
@@ -65,17 +63,17 @@ jobs:
         working-directory: ./infrastructure/root
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # UPDATED
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4 # UPDATED
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3 # UPDATED
         with:
           terraform_version: 1.5.0
 
@@ -87,7 +85,7 @@ jobs:
         run: terraform plan -out=tfplan
 
       - name: Upload Terraform Plan
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # UPDATED
         with:
           name: tfplan
           path: infrastructure/root/tfplan
@@ -102,32 +100,31 @@ jobs:
     
     environment: sandbox
     
-    # This ensures apply ONLY runs if triggered manually with the checkbox
+    # Enforce manual approval via the checkbox
     if: ${{ github.event.inputs.action == 'apply' && github.event.inputs.confirm_apply == 'true' }}
     
     defaults:
       run:
-        # FIXED: Added /root so Terraform runs in the correct folder
         working-directory: ./infrastructure/root 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # UPDATED
 
       - name: Download Terraform Plan
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4 # UPDATED
         with:
           name: tfplan
           path: infrastructure/root/
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4 # UPDATED
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3 # UPDATED
         with:
           terraform_version: 1.5.0
 
