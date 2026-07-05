@@ -7,7 +7,7 @@ on:
       - main
       - 'feature/**'
     paths:
-      - 'infrastructure/**'
+      - 'infrastructure/root/**'
   pull_request:
     branches:
       - main
