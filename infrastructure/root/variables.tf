@@ -10,4 +10,3 @@ variable "environment" {
   default     = "wiz-demo"
 }
 
-#test-pipeline trigger

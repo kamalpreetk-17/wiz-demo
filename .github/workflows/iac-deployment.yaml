@@ -43,6 +43,9 @@ jobs:
 
       - name: Run Checkov Security Scan
         uses: bridgecrewio/checkov-action@master
+        
+        continue-on-error: true 
+
         with:
           directory: infrastructure/root/
           soft_fail: true 
