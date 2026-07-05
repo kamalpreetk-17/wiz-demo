@@ -12,22 +12,7 @@ on:
       - main
     paths:
       - 'infrastructure/**'
-
   workflow_dispatch:
-    inputs:
-      action:
-        description: 'Choose action to perform'
-        required: true
-        default: 'plan'
-        type: choice
-        options:
-          - plan
-          - apply
-      confirm_apply:
-        description: 'Check this box to confirm you want to APPLY the changes'
-        required: true
-        default: false
-        type: boolean
 
 jobs:
   # ---------------------------------------------------------
@@ -38,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4 # UPDATED
+        uses: actions/checkout@v4
 
       - name: Run Checkov Security Scan
         uses: bridgecrewio/checkov-action@master
@@ -49,88 +34,97 @@ jobs:
           output_format: cli
 
   # ---------------------------------------------------------
-  # JOB 2: Terraform Plan
+  # JOB 2: Terraform Plan (Generates and Uploads Artifact)
   # ---------------------------------------------------------
   terraform-plan:
     name: Terraform Plan
     needs: security-scan
     runs-on: ubuntu-latest
     
-    environment: sandbox
-    
     defaults:
       run:
         working-directory: ./infrastructure/root
+        
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4 # UPDATED
+        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4 # UPDATED
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3 # UPDATED
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
-          terraform_wrapper: false   
+          terraform_wrapper: false # Disabled to fix Exit Code 1 bug
 
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -out=tfplan -compact-warnings
+        run: |
+          set -e
+          terraform plan -out=tfplan -compact-warnings
 
       - name: Upload Terraform Plan
-        uses: actions/upload-artifact@v4 # UPDATED
+        uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: infrastructure/root/tfplan
+          # Uploads the exact binary plan file
+          path: infrastructure/root/tfplan 
 
   # ---------------------------------------------------------
-  # JOB 3: Terraform Apply
+  # JOB 3: Terraform Apply (Pauses for Manual Approval)
   # ---------------------------------------------------------
   terraform-apply:
     name: Terraform Apply
     needs: terraform-plan
     runs-on: ubuntu-latest
     
-    environment: sandbox
-    
-    # Enforce manual approval via the checkbox
-    if: ${{ github.event.inputs.action == 'apply' && github.event.inputs.confirm_apply == 'true' }}
+    # THIS LINE TRIGGERS THE PAUSE! 
+    # (Requires 'Required reviewers' checked in Repo Settings -> Environments)
+    environment: sandbox 
     
     defaults:
       run:
         working-directory: ./infrastructure/root 
+        
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4 # UPDATED
+        uses: actions/checkout@v4
 
       - name: Download Terraform Plan
-        uses: actions/download-artifact@v4 # UPDATED
+        uses: actions/download-artifact@v4
         with:
           name: tfplan
+          # Downloads the file directly back into the root folder
           path: infrastructure/root/
 
+      - name: Verify Plan File Exists
+        run: ls -la tfplan
+
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4 # UPDATED
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3 # UPDATED
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
+          terraform_wrapper: false # Disabled to fix Exit Code 1 bug
 
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: |
+          set -e
+          terraform apply -auto-approve tfplan
