@@ -12,22 +12,8 @@ on:
       - main
     paths:
       - 'application/**'
-      
-  workflow_dispatch:
-    inputs:
-      action:
-        description: 'Choose action to perform'
-        required: true
-        default: 'build_and_scan'
-        type: choice
-        options:
-          - build_and_scan
-          - deploy
-      confirm_deploy:
-        description: 'Check this box to confirm you want to DEPLOY to Kubernetes'
-        required: true
-        default: false
-        type: boolean
+  workflow_dispatch: 
+    # Removed the manual inputs! We rely on the Environment gate now.
 
 permissions:
   id-token: write
@@ -46,13 +32,12 @@ jobs:
     name: Semgrep SAST Scan
     runs-on: ubuntu-latest
     
-    # Set the working directory to the application folder
     defaults:
       run:
         working-directory: ./application
         
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run Semgrep SAST
         uses: returntocorp/semgrep-action@v1
         with:
@@ -67,16 +52,15 @@ jobs:
     needs: sast-scan
     runs-on: ubuntu-latest
     
-    # Set the working directory to the application folder
     defaults:
       run:
         working-directory: ./application
         
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -84,14 +68,13 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker Image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Build context is the current directory (./application)
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
       - name: Run Trivy Container Scanner
@@ -103,7 +86,6 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Push Image to Amazon ECR
-        if: ${{ github.event.inputs.action == 'deploy' }}
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
@@ -117,19 +99,20 @@ jobs:
     name: Cosign Image Signing & SBOM Attestation
     needs: build-and-sca
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.action == 'deploy' }}
     
     defaults:
       run:
         working-directory: ./application
         
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      
       - uses: sigstore/cosign-installer@v3.1.1
+      
       - run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
         
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -137,7 +120,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Sign & Attest SBOM
         env:
@@ -149,24 +132,25 @@ jobs:
           cosign attest --yes --predicate sbom.json --type spdxjson $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
   # ---------------------------------------------------------
-  # STAGE 4: Kubernetes Deploy
+  # STAGE 4: Kubernetes Deploy (Pauses for Manual Approval)
   # ---------------------------------------------------------
   deploy-to-eks:
     name: Deploy to EKS via Helm
     needs: supply-chain-security
     runs-on: ubuntu-latest
     
-    if: ${{ github.event.inputs.action == 'deploy' && github.event.inputs.confirm_deploy == 'true' }}
+    # THIS LINE TRIGGERS THE PAUSE!
+    environment: sandbox 
     
     defaults:
       run:
         working-directory: ./application
         
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -174,7 +158,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Update Kubeconfig
         run: aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
@@ -184,7 +168,6 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Path to the helm chart is relative to ./application
           helm upgrade --install wiz-app ./helm-chart \
             --set image.repository=$REGISTRY/$ECR_REPOSITORY \
             --set image.tag=$IMAGE_TAG
