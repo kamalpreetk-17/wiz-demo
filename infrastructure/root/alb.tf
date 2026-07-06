@@ -25,18 +25,20 @@ resource "helm_release" "aws_alb_controller" {
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
-  values = [<<EOF
+
+  values = [
+<<EOF
 clusterName: ${module.eks.cluster_name}
 vpcId: ${module.vpc.vpc_id}
 serviceAccount:
   create: true
   name: aws-load-balancer-controller
   annotations:
-    "eks.amazonaws.com/role-arn": ${module.load_balancer_controller_irsa_role.iam_role_arn}
+    eks.amazonaws.com/role-arn: ${module.load_balancer_controller_irsa_role.iam_role_arn}
 EOF
   ]
 
-   depends_on = [module.eks] 
+  depends_on = [module.eks] 
 }
 
 
