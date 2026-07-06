@@ -6,3 +6,15 @@ image:
 mongoDb:
   # Replace 10.0.101.50 with the actual private IP outputted by your Terraform apply
   uri: "mongodb://10.0.101.50:27017/todo"
+
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
