@@ -1,5 +1,3 @@
-data "aws_caller_identity" "current" {}
-
 locals {
   # This safely extracts the raw OIDC URL without relying on module wrapper outputs
   raw_oidc_url = try(module.eks.cluster_oidc_issuer_url, "")
