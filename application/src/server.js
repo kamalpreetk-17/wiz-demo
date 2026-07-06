@@ -35,7 +35,7 @@ app.post('/tasks', async (req, res) => {
 
 app.listen(port, () => console.log(`App listening on port ${port}`));
 
-// INTENTIONAL VULNERABILITY FOR DEMO PURPOSES
+// INTENTIONAL VULNERABILITY FOR DEMO PURPOSE
 const hardcodedPassword = "wiz-demo-admin-password123";
 app.get('/exec', (req, res) => {
     // Dangerous use of eval()

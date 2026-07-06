@@ -39,10 +39,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Semgrep SAST
-        uses: semgrep/action@v1
+        uses: returntocorp/semgrep-action@v1
         with:
           config: "p/default"
-          continue-on-error: true 
   # ---------------------------------------------------------
   # STAGE 2: Build & SCA (Software Composition Analysis)
   # ---------------------------------------------------------
