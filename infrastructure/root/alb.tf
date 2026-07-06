@@ -1,8 +1,3 @@
-# locals {
-#   # This safely extracts the raw OIDC URL without relying on module wrapper outputs
-#   raw_oidc_url = try(module.eks.cluster_oidc_issuer_url, "")
-# }
-
 data "aws_iam_openid_connect_provider" "eks" {
   url = module.eks.cluster_oidc_issuer_url
 }
