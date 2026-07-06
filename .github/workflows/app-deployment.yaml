@@ -38,10 +38,17 @@ jobs:
         
     steps:
       - uses: actions/checkout@v4
-      - name: Run Semgrep SAST
-        uses: returntocorp/semgrep-action@v1
+      
+      - name: Setup Python (Required for Semgrep)
+        uses: actions/setup-python@v5
         with:
-          config: "p/default"
+          python-version: '3.11'
+          
+      - name: Install Semgrep
+        run: pip install semgrep
+        
+      - name: Run Semgrep SAST
+        run: semgrep scan --config="p/default"
   # ---------------------------------------------------------
   # STAGE 2: Build & SCA (Software Composition Analysis)
   # ---------------------------------------------------------
@@ -105,7 +112,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: sigstore/cosign-installer@v3.1.1
+      - uses: sigstore/cosign-installer@v3.4.0
+        with:
+          cosign-release: 'v2.2.4' 
       
       - run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
         
