@@ -8,7 +8,7 @@ module "eks" {
   subnet_ids                     = var.private_subnets
   control_plane_subnet_ids       = var.private_subnets
   cluster_endpoint_public_access = true
-  enable_irsa = true
+  enable_irsa = true # required for irsa to work with the load balancer controller
 
 
   eks_managed_node_groups = {
