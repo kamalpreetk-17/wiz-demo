@@ -24,7 +24,8 @@ provider "aws" {
 provider "helm" {
   kubernetes {
     host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    # Reverted to cluster_ca_certificate
+    cluster_ca_certificate = base64decode(module.eks.cluster_ca_certificate)
     
     exec {
       api_version = "client.authentication.k8s.io/v1beta1"
@@ -33,7 +34,7 @@ provider "helm" {
         "eks", 
         "get-token", 
         "--cluster-name", module.eks.cluster_name,
-        "--region", "us-east-1"  
+        "--region", "us-east-1"
       ]
     }
   }
