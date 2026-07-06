@@ -7,8 +7,8 @@ module "load_balancer_controller_irsa_role" {
 
   oidc_providers = {
     ex = {
-      # Manually constructing the ARN to bypass the missing output variable
-      provider_arn               = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}"
+      # This will now work perfectly because enable_irsa = true
+      provider_arn               = module.eks.oidc_provider_arn
       namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
     }
   }
