@@ -21,11 +21,10 @@ provider "aws" {
 
 }
 
-# Configure Helm provider using outputs from the EKS module to install the ALB Controller
 provider "helm" {
   kubernetes {
     host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_ca_certificate)
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
     
     exec {
       api_version = "client.authentication.k8s.io/v1beta1"
@@ -34,13 +33,8 @@ provider "helm" {
         "eks", 
         "get-token", 
         "--cluster-name", module.eks.cluster_name,
-        "--region", "us-east-1"
+        "--region", "us-east-1"  
       ]
-      # Passing the runner's AWS credentials into the sub-shell
-      env = {
-        AWS_ACCESS_KEY_ID     = null # Setting to null forces Terraform to read from the runner's environment
-        AWS_SECRET_ACCESS_KEY = null
-      }
     }
   }
 }
