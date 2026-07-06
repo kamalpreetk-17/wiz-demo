@@ -1,3 +1,10 @@
+data "aws_caller_identity" "current" {}
+
+locals {
+  # This safely extracts the raw OIDC URL without relying on module wrapper outputs
+  raw_oidc_url = try(module.eks.cluster_oidc_issuer_url, "")
+}
+
 module "load_balancer_controller_irsa_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.0"
@@ -7,8 +14,8 @@ module "load_balancer_controller_irsa_role" {
 
   oidc_providers = {
     ex = {
-      # This will now work perfectly because enable_irsa = true
-      provider_arn               = module.eks.oidc_provider_arn
+      # Bypassing the buggy output and building the ARN manually:
+      provider_arn               = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(local.raw_oidc_url, "https://", "")}"
       namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
     }
   }
