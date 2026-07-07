@@ -11,3 +11,8 @@ output "cluster_oidc_issuer_url" {
   description = "The URL on the EKS cluster for the OpenID Connect identity provider"
   value       = module.eks.cluster_oidc_issuer_url
 }
+
+output "node_security_group_id" {
+    description = "The security group ID of the EKS worker nodes"
+    value       = module.eks.node_security_group_id
+}
