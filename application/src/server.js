@@ -1,9 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path'); // ADDED: Built-in Node module for handling file paths
 const app = express();
 const port = 3000;
 
 app.use(express.json());
+
+app.use(express.static(path.join(__dirname, '../public')));
 
 // REQUIREMENT: Connect to MongoDB via Environment Variable
 const mongoURI = process.env.MONGO_URI;
@@ -20,8 +23,6 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
 
 const Task = mongoose.model('Task', new mongoose.Schema({ title: String }));
 
-app.get('/', (req, res) => res.send('Wiz Tech Exercise - WebApp is running!'));
-
 app.get('/tasks', async (req, res) => {
     const tasks = await Task.find();
     res.json(tasks);
@@ -35,7 +36,7 @@ app.post('/tasks', async (req, res) => {
 
 app.listen(port, () => console.log(`App listening on port ${port}`));
 
-// INTENTIONAL VULNERABILITY FOR DEMO PURPOSEs
+// INTENTIONAL VULNERABILITY FOR DEMO PURPOSES
 const hardcodedPassword = "wiz-demo-admin-password123";
 app.get('/exec', (req, res) => {
     // Dangerous use of eval()
