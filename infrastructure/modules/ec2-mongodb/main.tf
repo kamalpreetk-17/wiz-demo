@@ -69,11 +69,16 @@ resource "aws_instance" "mongo_vm" {
   
   tags = { Name = "${var.environment}-MongoDB" }
 
-  user_data = <<-EOF
+    user_data = <<-EOF
               #!/bin/bash
               apt-get update && apt-get install -y mongodb awscli
-              sed -i 's/bind_ip = 127.0.0.1/bind_ip = 0.0.0.0/' /etc/mongodb.conf
+              
+              # Modify the YAML formatted mongod.conf to listen on all IPs
+              sed -i 's/bindIp: 127.0.0.1/bindIp: 0.0.0.0/' /etc/mongodb.conf
+              
+              # Restart the service to apply changes
               systemctl restart mongodb
+              
               cat << 'SCRIPT' > /usr/local/bin/mongo-backup.sh
               #!/bin/bash
               mongodump --out /tmp/mongobackup

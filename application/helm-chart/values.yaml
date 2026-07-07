@@ -4,8 +4,7 @@ image:
 
 # The Private IP of the MongoDB VM deployed by Terraform
 mongoDb:
-  # Replace 10.0.101.50 with the actual private IP outputted by your Terraform apply
-  uri: "mongodb://10.0.101.50:27017/todo"
+  uri: "mongodb://10.0.101.111:27017/todo"
 
 ingress:
   enabled: true
