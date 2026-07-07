@@ -28,19 +28,21 @@ resource "aws_security_group" "mongo_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port   = 27017
-    to_port     = 27017
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_ingress_cidrs
-  }
-
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "mongo_from_eks_nodes" {
+  security_group_id            = aws_security_group.mongo_sg.id
+  referenced_security_group_id = var.k8s_node_security_group_id
+  from_port                    = 27017
+  to_port                      = 27017
+  ip_protocol                  = "tcp"
+  description                  = "Allow MongoDB access only from EKS worker nodes"
 }
 
 data "aws_ami" "ubuntu_outdated" {
