@@ -42,19 +42,19 @@ resource "aws_wafv2_web_acl" "main_waf" {
   }
 }
 
-# 2. Look up the ALB created by the Kubernetes Ingress Controller
-# (EKS Ingress provisions the ALB with specific tags. We filter by the cluster name).
-data "aws_lb" "k8s_alb" {
-  tags = {
-    "kubernetes.io/cluster/${var.environment}-cluster" = "owned"
-  }
+# # 2. Look up the ALB created by the Kubernetes Ingress Controller
+# # (EKS Ingress provisions the ALB with specific tags. We filter by the cluster name).
+# data "aws_lb" "k8s_alb" {
+#   tags = {
+#     "kubernetes.io/cluster/${var.environment}-cluster" = "owned"
+#   }
   
-  # Ensure Terraform waits for the ALB controller to be installed first
-  depends_on = [helm_release.aws_alb_controller]
-}
+#   # Ensure Terraform waits for the ALB controller to be installed first
+#   depends_on = [helm_release.aws_alb_controller]
+# }
 
-# 3. Attach the WAF to the Application Load Balancer
-resource "aws_wafv2_web_acl_association" "waf_alb_association" {
-  resource_arn = data.aws_lb.k8s_alb.arn
-  web_acl_arn  = aws_wafv2_web_acl.main_waf.arn
-}
+# # 3. Attach the WAF to the Application Load Balancer
+# resource "aws_wafv2_web_acl_association" "waf_alb_association" {
+#   resource_arn = data.aws_lb.k8s_alb.arn
+#   web_acl_arn  = aws_wafv2_web_acl.main_waf.arn
+# }
